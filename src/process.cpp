@@ -11,7 +11,8 @@ using std::to_string;
 using std::vector;
 
 // Return this process's ID
-int Process::Pid() { return this->Pid_; }
+Process::Process(int processId) { Pid_ = processId; }
+int Process::Pid() { return Pid_; }
 
 // Return this process's CPU utilization
 float Process::CpuUtilization() { return this->cpuUtilization_; }
