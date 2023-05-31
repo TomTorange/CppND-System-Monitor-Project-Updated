@@ -163,17 +163,23 @@ long LinuxParser::IdleJiffies() {
 // Read and return CPU utilization
 vector<string> LinuxParser::CpuUtilization() {
   vector<string> cpuUtil;
-  string line, seg;
+  string line, countKey;
   // Linux stores the CPU utilization of a process in the /proc/[PID]/stat
   std::ifstream filestream(kProcDirectory + kStatFilename);
   if (filestream.is_open()){
     std::getline(filestream,line);
     std::istringstream linestream(line);
-    for (unsigned int i = 0; i <= 10; i++){
-      linestream >> seg;
-      if ( seg != "cpu" ){
-        cpuUtil.push_back(seg);
-      }
+    /*
+    https://stackoverflow.com/questions/16726779/how-do-i-get-the-total-cpu-usage-of-an-application-from-proc-pid-stat/16736599#16736599
+    #14 utime - CPU time spent in user code, measured in clock ticks
+    #15 stime - CPU time spent in kernel code, measured in clock ticks
+    #16 cutime - Waited-for children's CPU time spent in user code (in clock ticks)
+    #17 cstime - Waited-for children's CPU time spent in kernel code (in clock ticks)
+    #22 starttime - Time when the process started, measured in clock ticks
+    */
+    for (unsigned int i = 0; i < 22; i++){
+      linestream >> countKey;
+        cpuUtil.push_back(countKey);
     }
   }
   return cpuUtil;
@@ -238,18 +244,21 @@ string LinuxParser::Ram(int pid) {
       std::replace(line.begin(), line.end(), ':', ' ');
       std::istringstream linestream(line);
       linestream >> Ram >> RamValue;
-      std::cout << " Ram value = " << RamValue << std::endl;
+ //     std::cout << " Ram value = " << RamValue << std::endl;
       if (Ram == "VmSize") {
-        return (std::to_string(stol(RamValue)/1000));
-//        break;
+//        return (std::to_string((stol(RamValue))/1000));
+        break;
       }
     }
   }
-  return (std::to_string(stol(RamValue)/1000));
+//  std::cout << " Ram value = " << RamValue << std::endl;
+  long ramTmp = stol(RamValue);
+  return (std::to_string(ramTmp/1000));
+
  }
 
 // Read and return the user ID associated with a process
-string LinuxParser::Uid(int pid[[maybe_unused]]) { 
+string LinuxParser::Uid(int pid) { 
   string line;
   string Uid;
   string UidValue{"0"};
@@ -260,8 +269,8 @@ string LinuxParser::Uid(int pid[[maybe_unused]]) {
       std::istringstream linestream(line);
       linestream >> Uid >> UidValue;
       if (Uid == "Uid") {
-        return UidValue;
-//        break;
+//        return UidValue;
+        break;
       }
     }
   }
@@ -303,5 +312,5 @@ long LinuxParser::UpTime(int pid) {
   }
   // the "starttime" value in this file is measured in "clock ticks".
   // convert to clock.
-  return std::stol(upTime)/sysconf(_SC_CLK_TCK);
+ return std::stol(upTime)/sysconf(_SC_CLK_TCK);
 }
