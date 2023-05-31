@@ -40,7 +40,7 @@ string LinuxParser::Kernel() {
   string os, kernel, version;
   string line;
   std::ifstream stream(kProcDirectory + kVersionFilename);
-  if (stream.is_open()) {
+  if (stream.is_open()) {         
     std::getline(stream, line);
     std::istringstream linestream(line);
     linestream >> os >> version >> kernel;
@@ -76,6 +76,7 @@ float LinuxParser::MemoryUtilization() {
   float value;
   // Information about memory utilization exists in the /proc/meminfo file.
   std::ifstream filestream(kProcDirectory + kMeminfoFilename);
+  // any file.is_open(), will have a return for this function
   if (filestream.is_open()) {
     while(std::getline(filestream, line)){
       std::replace(line.begin(), line.end(), ':', ' ');
@@ -110,10 +111,10 @@ long LinuxParser::UpTime() {
   return systemTime;
 }
 
-// Read and return the number of jiffies for the system
-long LinuxParser::Jiffies() {
-  return LinuxParser::ActiveJiffies() + LinuxParser::IdleJiffies();
-}
+// // Read and return the number of jiffies for the system
+// long LinuxParser::Jiffies() {
+//   return LinuxParser::ActiveJiffies() + LinuxParser::IdleJiffies();
+// }
 
 // Read and return the number of active jiffies for a PID
 long LinuxParser::ActiveJiffies(int pid) {
@@ -140,35 +141,45 @@ long LinuxParser::ActiveJiffies(int pid) {
 }
 
 // Read and return the number of active jiffies for the system
+// reference: https://knowledge.udacity.com/questions/987174
 long LinuxParser::ActiveJiffies() {
-  auto cpuUtil = CpuUtilization();
+  auto jiffies = CpuUtilization();
   // user: normal processes executing in user mode
   // nice: niced processes executing in user mode
   // system: processes executing in kernel mode
   // irq: servicing interrupts
   // softirq: servicing softirqs
   // steal: involuntary wait
-  return stol(cpuUtil[CPUStates::kUser_]) + stol(cpuUtil[CPUStates::kNice_]) + stol(cpuUtil[CPUStates::kSystem_]) +
-         stol(cpuUtil[CPUStates::kIRQ_]) + stol(cpuUtil[CPUStates::kSoftIRQ_]) + stol(cpuUtil[CPUStates::kSteal_]);
+  return stol(jiffies[CPUStates::kUser_]) + stol(jiffies[CPUStates::kNice_]) + stol(jiffies[CPUStates::kSystem_]) +
+         stol(jiffies[CPUStates::kIRQ_]) + stol(jiffies[CPUStates::kSoftIRQ_]) + stol(jiffies[CPUStates::kSteal_]);
  }
 
 // Read and return the number of idle jiffies for the system
+// reference: https://knowledge.udacity.com/questions/987174
 long LinuxParser::IdleJiffies() {
-  auto cpuUtil = CpuUtilization();
+  auto jiffies = CpuUtilization();
   // idle: twiddling thumbs
   // iowait: In a word, iowait stands for waiting for I/O to complete. But there are several problems:
-  return stol(cpuUtil[CPUStates::kIdle_]) + stol(cpuUtil[CPUStates::kIOwait_]);
+  return stol(jiffies[CPUStates::kIdle_]) + stol(jiffies[CPUStates::kIOwait_]);
+}
+
+// reference: https://knowledge.udacity.com/questions/987174
+long LinuxParser::Jiffies() {
+  return ActiveJiffies() + IdleJiffies();
 }
 
 // Read and return CPU utilization
+// reference: https://knowledge.udacity.com/questions/987174
+// reference: https://knowledge.udacity.com/questions/925549
 vector<string> LinuxParser::CpuUtilization() {
-  vector<string> cpuUtil;
-  string line, countKey;
+  vector<string> jiffies;
+  string line, cpu, value;
   // Linux stores the CPU utilization of a process in the /proc/[PID]/stat
   std::ifstream filestream(kProcDirectory + kStatFilename);
   if (filestream.is_open()){
     std::getline(filestream,line);
     std::istringstream linestream(line);
+    linestream >> cpu;
     /*
     https://stackoverflow.com/questions/16726779/how-do-i-get-the-total-cpu-usage-of-an-application-from-proc-pid-stat/16736599#16736599
     #14 utime - CPU time spent in user code, measured in clock ticks
@@ -177,13 +188,12 @@ vector<string> LinuxParser::CpuUtilization() {
     #17 cstime - Waited-for children's CPU time spent in kernel code (in clock ticks)
     #22 starttime - Time when the process started, measured in clock ticks
     */
-    for (unsigned int i = 0; i < 22; i++){
-      linestream >> countKey;
-        cpuUtil.push_back(countKey);
+    while (linestream >> value){
+        jiffies.push_back(value);
     }
   }
-  return cpuUtil;
-  }
+  return jiffies;
+}
 
 // Read and return the total number of processes
 int LinuxParser::TotalProcesses() { 

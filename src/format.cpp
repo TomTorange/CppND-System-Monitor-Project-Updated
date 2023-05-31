@@ -6,7 +6,7 @@ using std::string;
 
 // INPUT: Long int measuring seconds
 // OUTPUT: HH:MM:SS
-// REMOVE: [[maybe_unused]] once you define the function
+// https://knowledge.udacity.com/questions/983591
 string Format::ElapsedTime(long seconds) {
     // calculate the number of hours first
     int hour = seconds/3600;
