@@ -8,7 +8,7 @@ It contains relevant attributes as shown below
 */
 class Process {
  public:
-  Process(int processId);
+  Process(int processId);  // constuctor
   int Pid();                               
   std::string User();                     
   std::string Command();                   
