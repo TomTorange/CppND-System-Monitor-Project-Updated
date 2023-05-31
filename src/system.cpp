@@ -25,6 +25,7 @@ vector<Process>& System::Processes() {
         Process process(pid);
         processes_.push_back(process);
     }
+    std::sort(processes_.begin(),processes_.end());
     return processes_; 
 }
 // Return the system's kernel identifier (string)
