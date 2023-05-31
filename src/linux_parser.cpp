@@ -111,11 +111,6 @@ long LinuxParser::UpTime() {
   return systemTime;
 }
 
-// // Read and return the number of jiffies for the system
-// long LinuxParser::Jiffies() {
-//   return LinuxParser::ActiveJiffies() + LinuxParser::IdleJiffies();
-// }
-
 // Read and return the number of active jiffies for a PID
 long LinuxParser::ActiveJiffies(int pid) {
   string line;
@@ -211,6 +206,7 @@ int LinuxParser::TotalProcesses() {
  }
  return processValue;
 }
+
 // Read and return the number of running processes
 int LinuxParser::RunningProcesses() { 
   string line;
@@ -246,7 +242,7 @@ string LinuxParser::Command(int pid) {
 string LinuxParser::Ram(int pid) { 
   string line;
   string Ram;
-  string RamValue{"0"};
+  string RamValue;
   // Linux stores memory utilization for the process in /proc/[pid]/status.
   std::ifstream filestream(kProcDirectory + std::to_string(pid) + kStatusFilename);
   if(filestream.is_open()){
@@ -254,16 +250,12 @@ string LinuxParser::Ram(int pid) {
       std::replace(line.begin(), line.end(), ':', ' ');
       std::istringstream linestream(line);
       linestream >> Ram >> RamValue;
- //     std::cout << " Ram value = " << RamValue << std::endl;
       if (Ram == "VmSize") {
-//        return (std::to_string((stol(RamValue))/1000));
         break;
       }
     }
   }
-//  std::cout << " Ram value = " << RamValue << std::endl;
-  long ramTmp = stol(RamValue);
-  return (std::to_string(ramTmp/1000));
+  return (std::to_string(stol(RamValue)/1000));
 
  }
 
@@ -279,7 +271,6 @@ string LinuxParser::Uid(int pid) {
       std::istringstream linestream(line);
       linestream >> Uid >> UidValue;
       if (Uid == "Uid") {
-//        return UidValue;
         break;
       }
     }
@@ -290,7 +281,7 @@ string LinuxParser::Uid(int pid) {
 // Read and return the user associated with a process
 string LinuxParser::User(int pid) { 
   string line;
-  string User{"0"};
+  string User;
   string password, uid;
   std::ifstream filestream(kPasswordPath);
   if (filestream.is_open()) {
@@ -309,8 +300,7 @@ string LinuxParser::User(int pid) {
 // Read and return the uptime of a process
 long LinuxParser::UpTime(int pid) { 
   string line;
-  string upTime = "0";
-  // vector<string> upTimes;
+  string upTime;
   // Linux stores the process up time in /proc/[pid]/stat.
   std::ifstream filestream(kProcDirectory + std::to_string(pid) + kStatFilename);
   if (filestream.is_open()){
