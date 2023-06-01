@@ -1,21 +1,36 @@
 #include <string>
-
+#include <iomanip>
 #include "format.h"
+#include <chrono>
 
 using std::string;
+using std::setfill;
+using std::setw;
+using namespace std::chrono;
 
 // INPUT: Long int measuring seconds
 // OUTPUT: HH:MM:SS
 // https://knowledge.udacity.com/questions/983591
-string Format::ElapsedTime(long seconds) {
-    // calculate the number of hours first
-    int hour = seconds/3600;
-    // after getting the number of hours, we should subtract it from the total number of seconds
-    int seconds_over_hour = seconds - hour*3600;
-    // Calculate minutes
-    int minute = seconds_over_hour/60;
-    // Calculate seconds over minutes (rest)
-    int second = seconds_over_hour%60;
-    
-    return std::to_string(hour) + ":" + std::to_string(minute) + ":" + std::to_string(second);
+// https://knowledge.udacity.com/questions/155686
+// https://review.udacity.com/#!/reviews/4026529
+string Format::ElapsedTime(long s) {
+  std::chrono::seconds seconds{s};
+
+  std::chrono::hours hours = std::chrono::duration_cast<std::chrono::hours>(seconds);
+
+  seconds -= std::chrono::duration_cast<std::chrono::seconds>(hours);
+
+  std::chrono::minutes minutes = std::chrono::duration_cast<std::chrono::minutes>(seconds);
+
+  seconds -= std::chrono::duration_cast<std::chrono::seconds>(minutes);
+
+  std::stringstream ss{};
+
+  ss << std::setw(2) << std::setfill('0') << hours.count()     // HH
+     << std::setw(1) << ":"                                    // :
+     << std::setw(2) << std::setfill('0') << minutes.count()   // MM
+     << std::setw(1) << ":"                                    // :
+     << std::setw(2) << std::setfill('0') << seconds.count();  // SS
+
+  return ss.str();
 }

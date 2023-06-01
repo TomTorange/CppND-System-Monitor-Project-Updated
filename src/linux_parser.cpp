@@ -12,6 +12,41 @@ using std::string;
 using std::to_string;
 using std::vector;
 
+template <typename T>
+T findValueByKey(std::string const &keyFilter, std::string const &filename) {
+  std::string line, key;
+  T value;
+
+  std::ifstream stream(LinuxParser::kProcDirectory + filename);
+  // any file.is_open(), will have a return for this function
+  if (stream.is_open()) {
+    while (std::getline(stream, line)) {
+      std::istringstream linestream(line);
+      while (linestream >> key >> value) {
+        if (key == keyFilter) {
+          return value;
+        }
+      }
+    }
+  }
+  return value;
+};
+
+template <typename T>
+T getValueOfFile(std::string const &filename) {
+  std::string line;
+  T value;
+
+  std::ifstream stream(LinuxParser::kProcDirectory + filename);
+  if (stream.is_open()) {
+    std::getline(stream, line);
+    std::istringstream linestream(line);
+    linestream >> value;
+  }
+  return value;
+};
+
+
 // Read data from the filesystem
 string LinuxParser::OperatingSystem() {
   string line;
@@ -68,31 +103,16 @@ vector<int> LinuxParser::Pids() {
   return pids;
 }
 
+
 // Read and return the system memory utilization
-float LinuxParser::MemoryUtilization() {  
-  float totMem, freeMem;
-  string line;
-  string lable;
-  float value;
-  // Information about memory utilization exists in the /proc/meminfo file.
-  std::ifstream filestream(kProcDirectory + kMeminfoFilename);
-  // any file.is_open(), will have a return for this function
-  if (filestream.is_open()) {
-    while(std::getline(filestream, line)){
-      std::replace(line.begin(), line.end(), ':', ' ');
-      std::istringstream linestream(line);
-      linestream >> lable >> value;
-      // MemTotal: Total usable RAM (i.e. physical RAM minus a few reserved bits and the kernel binary code)
-      // MemFree: Total free RAM. On highmem systems, the sum of LowFree+HighFree
-      if (lable == "MemTotal") {
-        totMem = value;
-      }
-      if (lable == "MemFree") {
-        freeMem =value;
-      }
-    }
-  }
-  return ((totMem - freeMem)/totMem);
+float LinuxParser::MemoryUtilization() {
+  // MemTotal: Total usable RAM (i.e. physical RAM minus a few reserved bits and the kernel binary code)
+  string memTotal = "MemTotal:";
+  // MemFree: Total free RAM. On highmem systems, the sum of LowFree+HighFree
+  string memFree = "MemFree:";
+  float Total = findValueByKey<float>(memTotal, kMeminfoFilename);// "/proc/memInfo"
+  float Free = findValueByKey<float>(memFree, kMeminfoFilename);
+  return (Total - Free) / Total;
 }
 
 // Read and return the system uptime
@@ -183,8 +203,13 @@ vector<string> LinuxParser::CpuUtilization() {
     #17 cstime - Waited-for children's CPU time spent in kernel code (in clock ticks)
     #22 starttime - Time when the process started, measured in clock ticks
     */
+    /*
+    emplace_back instead of push_back, it is much more efficient than push_back. 
+    push_back constructs a temporary object which then will need to get moved into the vector v 
+    whereas emplace_back just forwards the argument and construct it directly in place with no copies or moves needed.
+    */
     while (linestream >> value){
-        jiffies.push_back(value);
+        jiffies.emplace_back(value);
     }
   }
   return jiffies;
@@ -224,19 +249,23 @@ int LinuxParser::RunningProcesses() {
   return runningProcessValue;
  }
 
-// Read and return the command associated with a process
-string LinuxParser::Command(int pid) { 
-  string line;
-  string command;
-  // Linux stores the command used to launch the function in the /proc/[pid]/cmdline file.
-  std::ifstream filestream(kProcDirectory + std::to_string(pid) + kCmdlineFilename);
-  if (filestream.is_open()) {
-    std::getline(filestream, line);
-    std::istringstream linestream(line);
-    linestream >> command;
-  }
-  return command;
-  }
+// // Read and return the command associated with a process
+// string LinuxParser::Command(int pid) { 
+//   string line;
+//   string command;
+//   // Linux stores the command used to launch the function in the /proc/[pid]/cmdline file.
+//   std::ifstream filestream(kProcDirectory + std::to_string(pid) + kCmdlineFilename);
+//   if (filestream.is_open()) {
+//     std::getline(filestream, line);
+//     std::istringstream linestream(line);
+//     linestream >> command;
+//   }
+//   return command;
+//   }
+
+string LinuxParser::Command(int pid) {
+  return std::string(getValueOfFile<std::string>(std::to_string(pid) + kCmdlineFilename));
+}
 
 // Read and return the memory used by a process
 string LinuxParser::Ram(int pid) { 
@@ -250,11 +279,17 @@ string LinuxParser::Ram(int pid) {
       std::replace(line.begin(), line.end(), ':', ' ');
       std::istringstream linestream(line);
       linestream >> Ram >> RamValue;
-      if (Ram == "VmSize") {
+      // https://review.udacity.com/#!/reviews/4026529
+      // VmSize: Virtural Memory size : sum of all the virtual memory
+      // VmRSS: exact physical memory being used as a part of Physical RAM
+      if (Ram == "VmRSS") {
         break;
       }
     }
   }
+  // can also consider the string of RamValue by the code to remove last 3 characters instead of dividing by 1024:
+  //  if (RamValue.length() >= 3) {
+  //      RamValue = RamValue.substr(0, RamValue.length() - 3);
   return (std::to_string(stol(RamValue)/1000));
 
  }
@@ -267,7 +302,7 @@ string LinuxParser::Uid(int pid) {
   std::ifstream filestream(kProcDirectory + std::to_string(pid) + kStatusFilename);
   if (filestream.is_open()) {
     while (std::getline(filestream, line)) {
-      std::replace(line.begin(), line.end(), ';', ' ');
+      std::replace(line.begin(), line.end(), ':', ' ');
       std::istringstream linestream(line);
       linestream >> Uid >> UidValue;
       if (Uid == "Uid") {

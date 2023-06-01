@@ -68,7 +68,9 @@ string Process::Ram() { return LinuxParser::Ram(Pid()); }
 string Process::User() { return LinuxParser::User(Pid()); }
 
 // Return the age of this process (in seconds)
-long int Process::UpTime() { return LinuxParser::UpTime(Pid()); }
+// UpTime(): system up time
+// UpTime(Pid()) : the time the process started after system boot
+long int Process::UpTime() { return LinuxParser::UpTime() - LinuxParser::UpTime(Pid()); }
 
 // Overload the "less than" comparison operator for Process objects
 bool Process::operator<(Process const& a) const {

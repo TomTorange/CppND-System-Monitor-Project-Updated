@@ -9,10 +9,13 @@
 #include "system.h"
 #include "linux_parser.h"
 
-using std::set;
-using std::size_t;
-using std::string;
-using std::vector;
+using namespace std;
+// std:: that you use as a prefix of many STLs. 
+// but one example https://stackoverflow.com/questions/11271889/global-variable-count-ambiguous need take care the function count. 
+// instead, still use: 
+// using std::size_t;
+// using std::
+// using std::vector;
 
 // Return the system's CPU
 Processor& System::Cpu() { return this->cpu_; }
@@ -22,8 +25,8 @@ vector<Process>& System::Processes() {
     vector<int> pids = LinuxParser::Pids();
     processes_.clear();
     for (auto pid : pids) {
-        Process process(pid);
-        processes_.push_back(process);
+//      Process process(pid);
+        processes_.emplace_back(pid);
     }
     // Sort the processes for the PID display
     std::sort(processes_.begin(),processes_.end());
