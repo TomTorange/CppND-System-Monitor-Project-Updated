@@ -117,18 +117,7 @@ float LinuxParser::MemoryUtilization() {
 
 // Read and return the system uptime
 long LinuxParser::UpTime() { 
-  long systemTime;
-  string line;
-  string upTimeValue;
-  // this upTime is for system uptime
-  std::ifstream filestream(kProcDirectory + kUptimeFilename);
-  if (filestream.is_open()){
-    std::getline(filestream, line);
-    std::istringstream linestream(line);
-    linestream >> upTimeValue;
-    systemTime = std::stol(upTimeValue);
-  }
-  return systemTime;
+  return getValueOfFile<long>(kUptimeFilename);
 }
 
 // Read and return the number of active jiffies for a PID
@@ -215,53 +204,18 @@ vector<string> LinuxParser::CpuUtilization() {
   return jiffies;
 }
 
+
 // Read and return the total number of processes
 int LinuxParser::TotalProcesses() { 
-  string line;
-  string processName;
-  int processValue;
-  // Information about the total number of processes on the system exists in the /proc/meminfo file.
-  std::ifstream filestream(kProcDirectory + kStatFilename);
-  if (filestream.is_open()){
-    while(std::getline(filestream, line)){
-      std::istringstream linestream(line);
-      linestream >> processName >> processValue;
-      if (processName == "processes") break;
-    }
- }
- return processValue;
+  string processName = "processes";
+  return findValueByKey<int>(processName, kStatFilename);
 }
 
 // Read and return the number of running processes
-int LinuxParser::RunningProcesses() { 
-  string line;
-  string runningProcess;
-  int runningProcessValue;
-  // Information about the number of processes on the system that are currently running exists in the /proc/meminfo file. 
-  std::ifstream filestream(kProcDirectory + kStatFilename);
-  if (filestream.is_open()){
-    while(std::getline(filestream, line)){
-      std::istringstream linestream(line);
-      linestream >> runningProcess >> runningProcessValue;
-      if (runningProcess == "procs_running") break;
-    }
-  }
-  return runningProcessValue;
+ int LinuxParser::RunningProcesses() {
+  string runningProcess = "procs_running";
+  return findValueByKey<int>(runningProcess, kStatFilename);
  }
-
-// // Read and return the command associated with a process
-// string LinuxParser::Command(int pid) { 
-//   string line;
-//   string command;
-//   // Linux stores the command used to launch the function in the /proc/[pid]/cmdline file.
-//   std::ifstream filestream(kProcDirectory + std::to_string(pid) + kCmdlineFilename);
-//   if (filestream.is_open()) {
-//     std::getline(filestream, line);
-//     std::istringstream linestream(line);
-//     linestream >> command;
-//   }
-//   return command;
-//   }
 
 string LinuxParser::Command(int pid) {
   return std::string(getValueOfFile<std::string>(std::to_string(pid) + kCmdlineFilename));
@@ -295,22 +249,9 @@ string LinuxParser::Ram(int pid) {
  }
 
 // Read and return the user ID associated with a process
-string LinuxParser::Uid(int pid) { 
-  string line;
-  string Uid;
-  string UidValue{"0"};
-  std::ifstream filestream(kProcDirectory + std::to_string(pid) + kStatusFilename);
-  if (filestream.is_open()) {
-    while (std::getline(filestream, line)) {
-      std::replace(line.begin(), line.end(), ':', ' ');
-      std::istringstream linestream(line);
-      linestream >> Uid >> UidValue;
-      if (Uid == "Uid") {
-        break;
-      }
-    }
-  }
-  return UidValue;
+string LinuxParser::Uid(int pid) {
+    string key = "Uid:";
+    return findValueByKey<string>(key, to_string(pid) + kStatusFilename);
 }
 
 // Read and return the user associated with a process
@@ -331,6 +272,7 @@ string LinuxParser::User(int pid) {
   }
   return User;
 }
+
 
 // Read and return the uptime of a process
 long LinuxParser::UpTime(int pid) { 
